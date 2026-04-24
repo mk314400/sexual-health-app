@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sexual Health">
+  <link rel="apple-touch-icon" href="peachy-logo.svg">
+  <title>Sexual Health Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0c0c14;
+      --s1:          #14141e;
+      --s2:          #1c1c2c;
+      --s3:          #252538;
+      --border:      #2c2c42;
+      --accent:      #8b7cf6;
+      --accent-dim:  rgba(139,124,246,.15);
+      --green:       #34d399;
+      --green-dim:   rgba(52,211,153,.15);
+      --red:         #f87171;
+      --red-dim:     rgba(248,113,113,.15);
+      --orange:      #fb923c;
+      --orange-dim:  rgba(251,146,60,.15);
+      --text:        #e2e2ee;
+      --text2:       #8888aa;
+      --text3:       #50506a;
+      --r:           16px;
+      --hh:          56px;
+      --th:          60px;
+      --sit:         env(safe-area-inset-top,    0px);
+      --sib:         env(safe-area-inset-bottom, 0px);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    /* ── Layout ─────────────────────────────────────────────── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding-top: var(--sit);
+    }
+
+    header {
+      height: var(--hh);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -.4px;
+    }
+
+    .add-btn {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform .15s, opacity .15s;
+      flex-shrink: 0;
+    }
+    .add-btn:active { transform: scale(.88); opacity: .8; }
+    .add-btn.hidden { visibility: hidden; pointer-events: none; }
+
+    main {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+
+    .tab-panel { display: none; padding: 14px 14px calc(14px + var(--sib)); }
+    .tab-panel.active { display: block; }
+
+    /* ── Bottom nav ─────────────────────────────────────────── */
+    nav {
+      height: calc(var(--th) + var(--sib));
+      background: var(--s1);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      padding-top: 6px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .tab-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      background: none;
+      border: none;
+      color: var(--text3);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .1px;
+      cursor: pointer;
+      padding: 4px 0;
+      transition: color .2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tab-btn .ico { font-size: 24px; line-height: 1; }
+    .tab-btn.active { color: var(--accent); }
+
+    /* ── Cards ──────────────────────────────────────────────── */
+    .card {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .card-name {
+      font-size: 17px;
+      font-weight: 700;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .card-badges { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+
+    .card-meta {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .card-meta span {
+      font-size: 13px;
+      color: var(--text2);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .badge-green  { background: var(--green-dim);  color: var(--green); }
+    .badge-red    { background: var(--red-dim);    color: var(--red); }
+    .badge-purple { background: var(--accent-dim); color: var(--accent); }
+    .badge-orange { background: var(--orange-dim); color: var(--orange); }
+
+    .del-btn {
+      background: none; border: none;
+      color: var(--text3); font-size: 16px;
+      cursor: pointer; padding: 2px 0 2px 6px; line-height: 1;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+    }
+    .del-btn:active { color: var(--red); }
+
+    /* ── Alert banner ───────────────────────────────────────── */
+    .alert-banner {
+      background: var(--orange-dim);
+      border: 1px solid var(--orange);
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--orange);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── PrEP hero ──────────────────────────────────────────── */
+    .prep-hero {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 22px 18px 18px;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .streak-num {
+      font-size: 72px;
+      font-weight: 900;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--green) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .streak-label {
+      font-size: 14px;
+      color: var(--text2);
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    .today-btn-wrap { margin-top: 18px; }
+
+    .pill-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .pill-btn {
+      padding: 14px 10px;
+      border-radius: 14px;
+      border: none;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      background: var(--accent);
+      color: #fff;
+      transition: transform .15s, opacity .15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .pill-btn:active { transform: scale(.94); opacity: .8; }
+    .pill-btn small { font-size: 11px; font-weight: 500; opacity: .8; }
+
+    .today-taken-btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: none;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      background: var(--green-dim);
+      color: var(--green);
+      transition: transform .15s, opacity .15s;
+    }
+    .today-taken-btn:active { transform: scale(.97); opacity: .85; }
+
+    .missed-alert {
+      background: var(--red-dim);
+      border: 1px solid var(--red);
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--red);
+      font-weight: 600;
+      text-align: center;
+    }
+
+    /* ── Stats row ──────────────────────────────────────────── */
+    .stat-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .stat-card {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 14px;
+      text-align: center;
+    }
+
+    .stat-num   { font-size: 34px; font-weight: 800; }
+    .stat-label { font-size: 12px; color: var(--text2); margin-top: 2px; font-weight: 500; }
+
+    /* ── Calendar ───────────────────────────────────────────── */
+    .cal-wrap {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+
+    .cal-wrap h3 {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 10px;
+    }
+
+    .cal-dow {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+
+    .cal-dow span {
+      text-align: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text3);
+      text-transform: uppercase;
+    }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .cal-day {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--s3);
+      color: var(--text3);
+    }
+    .cal-day.taken  { background: var(--green); color: #021a0e; }
+    .cal-day.missed { background: var(--red-dim); color: var(--red); border: 1px solid rgba(248,113,113,.3); }
+    .cal-day.today  { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .cal-day.future { opacity: .2; }
+
+    /* ── Section header ─────────────────────────────────────── */
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin: 14px 0 8px 4px;
+    }
+    .section-label:first-child { margin-top: 0; }
+
+    /* ── Empty state ────────────────────────────────────────── */
+    .empty {
+      text-align: center;
+      padding: 64px 24px;
+      color: var(--text2);
+    }
+    .empty .ico { font-size: 44px; display: block; margin-bottom: 12px; opacity: .4; }
+    .empty p { font-size: 15px; line-height: 1.5; }
+
+    /* ── Modal sheet ────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.72);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 100;
+      display: none;
+      align-items: flex-end;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .sheet {
+      background: var(--s1);
+      border-radius: 22px 22px 0 0;
+      width: 100%;
+      max-height: 92vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: calc(20px + var(--sib));
+      animation: slideUp .28s cubic-bezier(.32,.72,0,1);
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
+    .sheet-handle {
+      width: 38px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 10px auto 0;
+    }
+
+    .sheet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 18px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sheet-title { font-size: 17px; font-weight: 700; }
+
+    .sheet-close {
+      width: 28px; height: 28px;
+      background: var(--s3);
+      border: none;
+      color: var(--text2);
+      border-radius: 50%;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .sheet-body { padding: 18px; }
+
+    /* ── Form ───────────────────────────────────────────────── */
+    .fg { margin-bottom: 14px; }
+
+    .flabel {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: .3px;
+      margin-bottom: 7px;
+    }
+
+    .finput, .fselect, .ftextarea {
+      width: 100%;
+      background: var(--s2);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: var(--text);
+      font-size: 16px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .2s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .finput:focus, .fselect:focus, .ftextarea:focus { border-color: var(--accent); }
+    .finput::placeholder, .ftextarea::placeholder { color: var(--text3); }
+
+    .fselect {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238888aa' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+    .fselect option { background: #1c1c2c; }
+
+    .ftextarea { resize: vertical; min-height: 76px; }
+
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--s2);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .toggle-text { font-size: 16px; color: var(--text); }
+
+    .toggle {
+      width: 50px; height: 28px;
+      background: var(--border);
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      transition: background .22s;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 22px; height: 22px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .22s;
+      box-shadow: 0 1px 4px rgba(0,0,0,.4);
+    }
+    .toggle.on { background: var(--green); }
+    .toggle.on::after { transform: translateX(22px); }
+
+    .r2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .save-btn {
+      width: 100%;
+      padding: 15px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 6px;
+      font-family: inherit;
+      transition: transform .15s, opacity .15s;
+    }
+    .save-btn:active { transform: scale(.97); opacity: .85; }
+
+    ::-webkit-scrollbar { width: 0; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <svg viewBox="100 38 300 355" xmlns="http://www.w3.org/2000/svg" style="width:34px;height:34px;flex-shrink:0;" font-family="Georgia,'Times New Roman',serif">
+      <defs>
+        <radialGradient id="peachGrad" cx="45%" cy="40%" r="60%"><stop offset="0%" stop-color="#FFD4A8"/><stop offset="55%" stop-color="#FFA05C"/><stop offset="100%" stop-color="#E8743A"/></radialGradient>
+        <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#7DC95E"/><stop offset="100%" stop-color="#3A9E3A"/></linearGradient>
+        <linearGradient id="stemGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#5A7A2A"/><stop offset="100%" stop-color="#3A5A1A"/></linearGradient>
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="softShadow" x="-10%" y="-5%" width="120%" height="130%"><feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#C04A1A" flood-opacity="0.2"/></filter>
+      </defs>
+      <ellipse cx="250" cy="385" rx="100" ry="18" fill="#C04A1A" opacity="0.12"/>
+      <g filter="url(#softShadow)"><path d="M250 115 C310 112,348 148,358 195 C370 248,355 298,330 328 C308 354,278 370,250 372 C222 370,192 354,170 328 C145 298,130 248,142 195 C152 148,190 112,250 115Z" fill="url(#peachGrad)"/></g>
+      <ellipse cx="205" cy="180" rx="38" ry="28" fill="white" opacity="0.22" transform="rotate(-20 205 180)"/>
+      <path d="M250 126 Q242 200 244 340" stroke="#C06030" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.35"/>
+      <path d="M250 115 Q253 90 258 78" stroke="url(#stemGrad)" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M258 94 Q295 65 312 48 Q300 78 272 100Z" fill="url(#leafGrad)"/>
+      <path d="M253 100 Q222 78 208 62 Q222 86 244 104Z" fill="#5BA83A" opacity="0.85"/>
+      <g filter="url(#glow)"><path d="M250 258 C250 258,232 244,232 234 C232 225,240 220,250 228 C260 220,268 225,268 234 C268 244,250 258,250 258Z" fill="white" opacity="0.92"/></g>
+    </svg>
+    <h1 id="tab-title">Encounters</h1>
+    <button class="add-btn" id="add-btn" onclick="openModal()">+</button>
+  </header>
+
+  <main>
+    <div class="tab-panel active" id="tab-encounters">
+      <div id="enc-list"></div>
+    </div>
+
+    <div class="tab-panel" id="tab-prep">
+      <div class="prep-hero">
+        <div class="streak-num" id="streak-num">0</div>
+        <div class="streak-label">day streak</div>
+        <div class="today-btn-wrap" id="today-btn-wrap"></div>
+      </div>
+      <div id="missed-alert-wrap"></div>
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-num" id="taken-30" style="color:var(--green)">0</div>
+          <div class="stat-label">taken (30d)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="missed-30" style="color:var(--red)">0</div>
+          <div class="stat-label">missed (30d)</div>
+        </div>
+      </div>
+      <div class="cal-wrap">
+        <h3>Last 28 days</h3>
+        <div class="cal-dow">
+          <span>M</span><span>T</span><span>W</span><span>T</span>
+          <span>F</span><span>S</span><span>S</span>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-doxypep">
+      <div id="dpep-list"></div>
+    </div>
+  </main>
+
+  <nav>
+    <button class="tab-btn active" data-tab="encounters" onclick="switchTab('encounters')">
+      <span class="ico">📋</span>Encounters
+    </button>
+    <button class="tab-btn" data-tab="prep" onclick="switchTab('prep')">
+      <span class="ico">💊</span>PrEP
+    </button>
+    <button class="tab-btn" data-tab="doxypep" onclick="switchTab('doxypep')">
+      <span class="ico">🛡️</span>Doxy-PEP
+    </button>
+  </nav>
+</div>
+
+<div class="modal-overlay" id="modal" onclick="onOverlay(event)">
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title" id="sheet-title"></span>
+      <button class="sheet-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="sheet-body" id="sheet-body"></div>
+  </div>
+</div>
+
+<script>
+// ── Storage ───────────────────────────────────────────────────────────────────
+const S = {
+  get: k => { try { return JSON.parse(localStorage.getItem(k)) || (k==='prep'?{}:[]); } catch { return k==='prep'?{}:[]; } },
+  set: (k,v) => localStorage.setItem(k, JSON.stringify(v))
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const today   = () => new Date().toISOString().slice(0,10);
+const uid     = () => Math.random().toString(36).slice(2,10);
+const nowTime = () => new Date().toTimeString().slice(0,5);
+
+function shiftDate(base, days) {
+  const d = new Date(base + 'T12:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0,10);
+}
+
+function fmtDate(d) {
+  return new Date(d + 'T12:00:00').toLocaleDateString('en-AU', { day:'numeric', month:'short', year:'numeric' });
+}
+
+function fmtTime(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':');
+  return `${+h % 12 || 12}:${m}${+h >= 12 ? 'pm' : 'am'}`;
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let activeTab = 'encounters';
+
+// ── Tab routing ───────────────────────────────────────────────────────────────
+const TITLES = { encounters:'Encounters', prep:'PrEP', doxypep:'Doxy-PEP' };
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
+  document.getElementById('tab-title').textContent = TITLES[tab];
+  document.getElementById('add-btn').classList.toggle('hidden', tab === 'prep');
+  renderTab(tab);
+}
+
+function renderTab(t) {
+  if (t === 'encounters') renderEnc();
+  else if (t === 'prep')  renderPrep();
+  else if (t === 'doxypep') renderDpep();
+}
+
+// ── Encounters ────────────────────────────────────────────────────────────────
+function renderEnc() {
+  const encs  = S.get('encounters');
+  const dpeps = S.get('doxypep');
+  const el    = document.getElementById('enc-list');
+
+  if (!encs.length) {
+    el.innerHTML = `<div class="empty"><span class="ico">📋</span><p>No encounters logged yet.<br>Tap <strong>+</strong> to add one.</p></div>`;
+    return;
+  }
+
+  const sorted = [...encs].sort((a,b) => (b.date+b.time) > (a.date+a.time) ? 1 : -1);
+
+  // group by month
+  let lastMonth = '';
+  let html = '';
+  for (const e of sorted) {
+    const month = new Date(e.date + 'T12:00:00').toLocaleDateString('en-AU', { month:'long', year:'numeric' });
+    if (month !== lastMonth) {
+      html += `<div class="section-label">${month}</div>`;
+      lastMonth = month;
+    }
+
+    // doxy-PEP nudge: unprotected, within 72h, no linked dpep
+    let nudge = '';
+    if (!e.protected) {
+      const encMs  = new Date(e.date + 'T' + (e.time || '00:00')).getTime();
+      const ageH   = (Date.now() - encMs) / 36e5;
+      const linked = dpeps.some(d => d.encounterId === e.id);
+      if (!linked && ageH < 72) {
+        const hoursLeft = Math.max(0, Math.ceil(72 - ageH));
+        nudge = `<div class="alert-banner">⚠️ No doxy-PEP logged — ${hoursLeft}h window remaining</div>`;
+      }
+    }
+
+    html += `
+      <div class="card">
+        <div class="card-header">
+          <span class="card-name">${e.partner || 'Anonymous'}</span>
+          <div class="card-badges">
+            <span class="badge ${e.protected ? 'badge-green' : 'badge-red'}">${e.protected ? 'Protected' : 'Unprotected'}</span>
+            <button class="del-btn" onclick="delEnc('${e.id}')">✕</button>
+          </div>
+        </div>
+        <div class="card-meta">
+          <span>📅 ${fmtDate(e.date)}${e.time ? ' · ' + fmtTime(e.time) : ''}</span>
+          ${e.location ? `<span>📍 ${e.location}</span>` : ''}
+          ${e.howMet   ? `<span>🔗 ${e.howMet}</span>` : ''}
+          ${e.notes    ? `<span>📝 ${e.notes}</span>` : ''}
+        </div>
+        ${nudge}
+      </div>`;
+  }
+  el.innerHTML = html;
+}
+
+function delEnc(id) {
+  if (!confirm('Delete this encounter?')) return;
+  S.set('encounters', S.get('encounters').filter(e => e.id !== id));
+  renderEnc();
+}
+
+// ── PrEP ──────────────────────────────────────────────────────────────────────
+function renderPrep() {
+  const prep = S.get('prep');
+  const t    = today();
+
+  // streak
+  let streak = 0, d = t;
+  while (prep[d]?.taken) { streak++; d = shiftDate(d,-1); }
+  document.getElementById('streak-num').textContent = streak;
+
+  // 30-day stats
+  let taken = 0, missed = 0;
+  for (let i = 0; i < 30; i++) {
+    const day = shiftDate(t,-i);
+    if (prep[day]?.taken) taken++;
+    else missed++;
+  }
+  document.getElementById('taken-30').textContent  = taken;
+  document.getElementById('missed-30').textContent = missed;
+
+  // today button
+  const isTaken = !!prep[t]?.taken;
+  const wrap = document.getElementById('today-btn-wrap');
+  if (isTaken) {
+    const { time, tz, pills } = prep[t];
+    const timeStr = time ? ` at ${fmtTime(time)}${tz ? ' ' + tz : ''}` : '';
+    const pillStr = pills ? ` · ${pills} pill${pills > 1 ? 's' : ''}` : '';
+    wrap.innerHTML = `<button class="today-taken-btn" onclick="undoToday()">✓ Taken today${timeStr}${pillStr} — tap to undo</button>`;
+  } else {
+    wrap.innerHTML = `
+      <div class="pill-btns">
+        <button class="pill-btn" onclick="logPrepDose(1)">💊 1 pill<small>standard</small></button>
+        <button class="pill-btn" onclick="logPrepDose(2)">💊💊 2 pills<small>double dose</small></button>
+      </div>`;
+  }
+
+  // missed yesterday alert
+  const yest = shiftDate(t,-1);
+  const alertWrap = document.getElementById('missed-alert-wrap');
+  if (!prep[yest]?.taken) {
+    alertWrap.innerHTML = `<div class="missed-alert">⚠️ You missed yesterday — streak broken</div>`;
+  } else {
+    alertWrap.innerHTML = '';
+  }
+
+  // calendar — align to Monday
+  const todayDate = new Date(t + 'T12:00:00');
+  const dow = (todayDate.getDay() + 6) % 7; // 0=Mon
+  const start = shiftDate(t, -(27 + dow));
+  const totalDays = 28 + dow;
+
+  let cells = '';
+  for (let i = 0; i < totalDays; i++) {
+    const day = shiftDate(start, i);
+    const dn  = new Date(day + 'T12:00:00').getDate();
+    const future = day > t;
+    const taken2 = prep[day]?.taken;
+    const cls = ['cal-day',
+      day === t   ? 'today'  : '',
+      future      ? 'future' : taken2 ? 'taken' : 'missed'
+    ].filter(Boolean).join(' ');
+    cells += `<div class="${cls}">${dn}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML = cells;
+}
+
+function logPrepDose(pills) {
+  const now = new Date();
+  const tz  = now.toLocaleTimeString('en', { timeZoneName: 'short' }).split(' ').pop();
+  document.getElementById('sheet-title').textContent = `Log PrEP — ${pills} pill${pills > 1 ? 's' : ''}`;
+  document.getElementById('sheet-body').innerHTML = `
+    <div class="fg">
+      <label class="flabel">Time taken</label>
+      <input class="finput" id="f-prep-time" type="time" value="${nowTime()}">
+    </div>
+    <div style="font-size:13px;color:var(--text2);margin:-6px 0 14px 2px;">Timezone: ${tz}</div>
+    <div class="fg">
+      <label class="flabel">Date</label>
+      <input class="finput" id="f-prep-date" type="date" value="${today()}">
+    </div>
+    <button class="save-btn" onclick="savePrepDose(${pills}, '${tz}')">Save Dose</button>
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+
+function savePrepDose(pills, tz) {
+  const time = document.getElementById('f-prep-time').value;
+  const date = document.getElementById('f-prep-date').value;
+  if (!date) { alert('Please choose a date.'); return; }
+  const prep = S.get('prep');
+  prep[date] = { taken: true, time, tz, pills };
+  S.set('prep', prep);
+  closeModal();
+  renderPrep();
+}
+
+function undoToday() {
+  const prep = S.get('prep');
+  delete prep[today()];
+  S.set('prep', prep);
+  renderPrep();
+}
+
+// ── Doxy-PEP ─────────────────────────────────────────────────────────────────
+function renderDpep() {
+  const logs = S.get('doxypep');
+  const encs = S.get('encounters');
+  const el   = document.getElementById('dpep-list');
+
+  if (!logs.length) {
+    el.innerHTML = `<div class="empty"><span class="ico">🛡️</span><p>No doxy-PEP logged yet.<br>Tap <strong>+</strong> to add one.</p></div>`;
+    return;
+  }
+
+  const sorted = [...logs].sort((a,b) => (b.date+b.time) > (a.date+a.time) ? 1 : -1);
+
+  let lastMonth = '';
+  let html = '';
+  for (const l of sorted) {
+    const month = new Date(l.date + 'T12:00:00').toLocaleDateString('en-AU', { month:'long', year:'numeric' });
+    if (month !== lastMonth) {
+      html += `<div class="section-label">${month}</div>`;
+      lastMonth = month;
+    }
+    const enc = encs.find(e => e.id === l.encounterId);
+    html += `
+      <div class="card">
+        <div class="card-header">
+          <span class="card-name">${l.dosage}</span>
+          <div class="card-badges">
+            <span class="badge badge-purple">Doxy-PEP</span>
+            <button class="del-btn" onclick="delDpep('${l.id}')">✕</button>
+          </div>
+        </div>
+        <div class="card-meta">
+          <span>📅 ${fmtDate(l.date)}${l.time ? ' · ' + fmtTime(l.time) : ''}</span>
+          ${enc ? `<span>🔗 After: ${enc.partner || 'Anonymous'} (${fmtDate(enc.date)})</span>` : ''}
+          ${l.notes ? `<span>📝 ${l.notes}</span>` : ''}
+        </div>
+      </div>`;
+  }
+  el.innerHTML = html;
+}
+
+function delDpep(id) {
+  if (!confirm('Delete this doxy-PEP entry?')) return;
+  S.set('doxypep', S.get('doxypep').filter(l => l.id !== id));
+  renderDpep();
+}
+
+// ── Modals ────────────────────────────────────────────────────────────────────
+function openModal() {
+  if (activeTab === 'encounters') openEncModal();
+  else if (activeTab === 'doxypep') openDpepModal();
+}
+
+function openEncModal() {
+  document.getElementById('sheet-title').textContent = 'Log Encounter';
+  document.getElementById('sheet-body').innerHTML = `
+    <div class="fg">
+      <label class="flabel">Partner name</label>
+      <input class="finput" id="f-partner" type="text" placeholder="Name or alias" autocomplete="off" autocorrect="off">
+    </div>
+    <div class="r2">
+      <div class="fg">
+        <label class="flabel">Date</label>
+        <input class="finput" id="f-date" type="date" value="${today()}">
+      </div>
+      <div class="fg">
+        <label class="flabel">Time</label>
+        <input class="finput" id="f-time" type="time" value="${nowTime()}">
+      </div>
+    </div>
+    <div class="fg">
+      <label class="flabel">Location</label>
+      <input class="finput" id="f-location" type="text" placeholder="e.g. His place, Hotel, Mine" autocomplete="off">
+    </div>
+    <div class="fg">
+      <label class="flabel">How we met</label>
+      <select class="fselect" id="f-howmet">
+        <option value="">Select…</option>
+        <option>Grindr</option>
+        <option>Scruff</option>
+        <option>Hinge</option>
+        <option>Tinder</option>
+        <option>Feeld</option>
+        <option>IRL / in person</option>
+        <option>Friend</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label class="flabel">Protection</label>
+      <div class="toggle-row">
+        <span class="toggle-text" id="prot-label">Unprotected</span>
+        <button class="toggle" id="prot-toggle" onclick="toggleProt()"></button>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="flabel">Notes</label>
+      <textarea class="ftextarea" id="f-notes" placeholder="Optional…"></textarea>
+    </div>
+    <button class="save-btn" onclick="saveEnc()">Save Encounter</button>
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+
+function toggleProt() {
+  const t = document.getElementById('prot-toggle');
+  const l = document.getElementById('prot-label');
+  t.classList.toggle('on');
+  l.textContent = t.classList.contains('on') ? 'Protected' : 'Unprotected';
+}
+
+function saveEnc() {
+  const date = document.getElementById('f-date').value;
+  if (!date) { alert('Please choose a date.'); return; }
+  const encs = S.get('encounters');
+  encs.push({
+    id:        uid(),
+    partner:   document.getElementById('f-partner').value.trim(),
+    date,
+    time:      document.getElementById('f-time').value,
+    location:  document.getElementById('f-location').value.trim(),
+    howMet:    document.getElementById('f-howmet').value,
+    protected: document.getElementById('prot-toggle').classList.contains('on'),
+    notes:     document.getElementById('f-notes').value.trim()
+  });
+  S.set('encounters', encs);
+  closeModal();
+  renderEnc();
+}
+
+function openDpepModal() {
+  const encs = S.get('encounters');
+  const opts = [...encs]
+    .sort((a,b) => b.date > a.date ? 1 : -1)
+    .map(e => `<option value="${e.id}">${e.partner || 'Anonymous'} — ${fmtDate(e.date)}</option>`)
+    .join('');
+
+  document.getElementById('sheet-title').textContent = 'Log Doxy-PEP';
+  document.getElementById('sheet-body').innerHTML = `
+    <div class="r2">
+      <div class="fg">
+        <label class="flabel">Date</label>
+        <input class="finput" id="f-date" type="date" value="${today()}">
+      </div>
+      <div class="fg">
+        <label class="flabel">Time taken</label>
+        <input class="finput" id="f-time" type="time" value="${nowTime()}">
+      </div>
+    </div>
+    <div class="fg">
+      <label class="flabel">Dosage</label>
+      <select class="fselect" id="f-dose">
+        <option value="200mg (standard)">200mg — standard</option>
+        <option value="100mg">100mg</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label class="flabel">Linked encounter</label>
+      <select class="fselect" id="f-enc">
+        <option value="">Not linked</option>
+        ${opts}
+      </select>
+    </div>
+    <div class="fg">
+      <label class="flabel">Notes</label>
+      <textarea class="ftextarea" id="f-notes" placeholder="Optional…"></textarea>
+    </div>
+    <button class="save-btn" onclick="saveDpep()">Save Doxy-PEP</button>
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+
+function saveDpep() {
+  const date = document.getElementById('f-date').value;
+  if (!date) { alert('Please choose a date.'); return; }
+  const logs = S.get('doxypep');
+  logs.push({
+    id:          uid(),
+    date,
+    time:        document.getElementById('f-time').value,
+    dosage:      document.getElementById('f-dose').value,
+    encounterId: document.getElementById('f-enc').value,
+    notes:       document.getElementById('f-notes').value.trim()
+  });
+  S.set('doxypep', logs);
+  closeModal();
+  renderDpep();
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+function onOverlay(e) {
+  if (e.target === document.getElementById('modal')) closeModal();
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+renderEnc();
+</script>
+</body>
+</html>
